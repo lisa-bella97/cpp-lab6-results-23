@@ -1,0 +1,1 @@
+# cpp-lab6-results-23
