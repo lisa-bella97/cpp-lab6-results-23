@@ -1,60 +1,67 @@
 #ifndef _COMPLEXMATRIX_H_
 #define _COMPLEXMATRIX_H_
-#include "ComplexNumber.h"
-#include <stdexcept>
-#include <vector>
+
+#include <iostream>
+#include <fstream>
 
 template<class T>
 class ComplexMatrix
 {
 private:
-	std::vector<std::vector<T> > _matrix; 
-	unsigned int _rows; 
-	unsigned int _columns; 
-	
+	T** _matrix;
+	size_t _rows;
+	size_t _columns;
+	T _zero;
 public:
 	class MatrixIterator : public std::iterator<std::input_iterator_tag, T>
 	{
 	private:
-		std::vector<std::vector<T> > _data;
-		unsigned int _n;
-		unsigned int _m;
-		unsigned int _index;
+		T** _data;
+		size_t _n;
+		size_t _m;
+		size_t _index;
 	public:
-		MatrixIterator(std::vector<std::vector<T> > data, unsigned int n, unsigned int m, unsigned int index) : _data(data), _n(n), _m(m), _index(index) { }
-		MatrixIterator operator++() { ++_index; return *this; }
-		MatrixIterator operator+(unsigned int ind) 
-		{ 
+		MatrixIterator(T** data, size_t n, size_t m, size_t index) : _data(data), _n(n), _m(m), _index(index) { }
+		MatrixIterator(const MatrixIterator& it) : _data(it._data), _n(it._n), _m(it._m), _index(it._index) { }
+		MatrixIterator& operator++() { ++_index; return *this; }
+		MatrixIterator& operator++(int) { _index++; return *this; }
+		MatrixIterator operator+(size_t ind)
+		{
 			if (_index + ind >= n*m)
 				throw std::out_of_range("Out of range");
-			_index += ind; 
-			return *this; 
+			_index += ind;
+			return *this;
 		}
-		T& operator*() 
-		{  
+		T& operator*() const
+		{
 			if (_index >= _n*_m)
 				throw std::out_of_range("Out of range");
 			return _data[_index / _m][_index % _m];
 		}
-		bool operator==(MatrixIterator it) { return true; }
-		bool operator!=(MatrixIterator it) { return false; }
-
+		bool operator==(const MatrixIterator& it) const { return _index == it._index; }
+		bool operator!=(const MatrixIterator& it) const { return _index != it._index; }
 	};
+
 	ComplexMatrix();
 	ComplexMatrix(const ComplexMatrix<T>& matrix);
-	ComplexMatrix(std::vector<std::vector<T> > matrix);
+	ComplexMatrix(T** matrix, size_t rows, size_t columns);
+	ComplexMatrix(size_t rows, size_t columns, T filler);
+	template <class U>
+	ComplexMatrix(const ComplexMatrix<U>& matrix);
+	void setZero(T zero) { _zero = zero; }
+	size_t getRows() const { return _rows; }
+	size_t getColumns() const { return _columns; }
+	T** getMatrix() const { return _matrix; }
 	ComplexMatrix<T>& operator=(const ComplexMatrix<T> & matrix);
 	ComplexMatrix<T> operator*(const ComplexMatrix<T> & matrix) const;
-	ComplexMatrix<T> operator*(const T & num) const;
+	ComplexMatrix<T> operator*(T num) const;
 	friend ComplexMatrix<T> operator*(const T & num, const ComplexMatrix<T> & matrix);
 	ComplexMatrix<T> operator+(const ComplexMatrix<T> & matrix) const;
-	ComplexMatrix<T> operator|(const ComplexMatrix<T> & matrix);
-	ComplexMatrix<T> operator~();
+	ComplexMatrix<T> operator|(const ComplexMatrix<T> & matrix) const;
+	ComplexMatrix<T> operator~() const;
 	MatrixIterator begin() { return MatrixIterator(_matrix, _rows, _columns, 0); }
 	MatrixIterator end() { return MatrixIterator(_matrix, _rows, _columns, _rows*_columns); }
-	
-	T operator()(unsigned int npos, unsigned int mpos) const;
-	template<class T>
+	T operator()(size_t npos, size_t mpos) const;
 	friend std::ofstream & operator<<(std::ofstream & ofs, ComplexMatrix<T> & matrix)
 	{
 		for (int i = 0; i < matrix._rows; i++)
@@ -65,34 +72,76 @@ public:
 		}
 		return ofs;
 	}
+	friend std::ostream & operator<<(std::ostream & os, ComplexMatrix<T> & matrix)
+	{
+		for (int i = 0; i < matrix._rows; i++)
+		{
+			for (int j = 0; j < matrix._columns; j++)
+				os << matrix._matrix[i][j] << "  ";
+			os << "\n";
+		}
+		return os;
+	}
 	~ComplexMatrix();
 };
 
 template<class T>
 ComplexMatrix<T>::ComplexMatrix()
 {
-	_matrix = std::vector<std::vector<T> >(0);
-	_rows = _columns = 0;
+	 _matrix = _rows = _columns = 0;
 }
 
 template<class T>
 ComplexMatrix<T>::ComplexMatrix(const ComplexMatrix<T>& matrix)
 {
-	_matrix = std::vector<std::vector<T> >(matrix._matrix);
+	_matrix = new T*[matrix._rows];
+	for (int i = 0; i < matrix._rows; i++)
+		_matrix[i] = new T[matrix._columns];
 	_rows = matrix._rows;
 	_columns = matrix._columns;
+	for (int i = 0; i < _rows; i++)
+		for (int j = 0; j < _columns; j++)
+			_matrix[i][j] = matrix._matrix[i][j];
 }
 
 template<class T>
-ComplexMatrix<T>::ComplexMatrix(std::vector<std::vector<T> > matrix)
+ComplexMatrix<T>::ComplexMatrix(T** matrix, size_t rows, size_t columns)
 {
-	for (int i = 0; i < matrix.size() - 1; i++)
-		if(matrix[i].size() != matrix[i + 1].size())
-			throw std::logic_error("Incorrect matrix.");
+	_matrix = new T*[rows];
+	for (int i = 0; i < rows; i++)
+		_matrix[i] = new T[columns];
+	for (int i = 0; i < rows; i++)
+		for (int j = 0; j < columns; j++)
+			_matrix[i][j] = matrix[i][j];
+	_rows = rows;
+	_columns = columns;
+}
 
-	_matrix = std::vector<std::vector<T> >(matrix);
-	_rows = matrix.size();
-	_columns = matrix[0].size();
+template<class T>
+ComplexMatrix<T>::ComplexMatrix(size_t rows, size_t columns, T filler)
+{
+	_matrix = new T*[rows];
+	for (int i = 0; i < rows; i++)
+		_matrix[i] = new T[columns];
+	for (int i = 0; i < rows; i++)
+		for (int j = 0; j < columns; j++)
+			_matrix[i][j] = filler;
+	_rows = rows;
+	_columns = columns;
+}
+
+template <class T>
+template <class U>
+ComplexMatrix<T>::ComplexMatrix(const ComplexMatrix<U>& matrix)
+{
+	_matrix = new T*[matrix.getRows()];
+	for (int i = 0; i < matrix.getRows(); i++)
+		_matrix[i] = new T[matrix.getColumns()];
+	_rows = matrix.getRows();
+	_columns = matrix.getColumns();
+	for (int i = 0; i < _rows; i++)
+		for (int j = 0; j < _columns; j++)
+			_matrix[i][j] = static_cast<T>(matrix.getMatrix()[i][j]);
 }
 
 template<class T>
@@ -101,7 +150,9 @@ ComplexMatrix<T>& ComplexMatrix<T>::operator=(const ComplexMatrix<T> & matrix)
 	if (this == &matrix)
 		return *this;
 
-	_matrix = std::vector<std::vector<T>>(matrix._matrix);
+	_matrix = new T*[matrix->_rows];
+	for (int i = 0; i < matrix->_rows; i++)
+		_matrix[i] = new T[matrix->_columns];
 	_rows = matrix._rows;
 	_columns = matrix._columns;
 	return *this;
@@ -110,28 +161,20 @@ ComplexMatrix<T>& ComplexMatrix<T>::operator=(const ComplexMatrix<T> & matrix)
 template<class T>
 ComplexMatrix<T> ComplexMatrix<T>::operator*(const ComplexMatrix<T> & matrix) const
 {
-	if (_columns != matrix._rows) 
+	if (_columns != matrix._rows)
 		throw std::logic_error("Error in multiplication of matrixes.");
 
-	ComplexMatrix<T> result;
-	result._matrix = std::vector<std::vector<T> >(_rows);
-
-	for (int i = 0; i < _rows; i++)
-		result._matrix[i] = std::vector<T>(matrix._columns);
-
-	result._rows = _rows;
-	result._columns = matrix._columns;
+	ComplexMatrix<T> result(_rows, matrix._columns, _zero);
 
 	for (int i = 0; i < _rows; i++)
 		for (int j = 0; j < matrix._columns; j++)
 			for (int k = 0; k < _columns; k++)
 				result._matrix[i][j] = result._matrix[i][j] + _matrix[i][k] * matrix._matrix[k][j];
-
 	return result;
 }
 
 template<class T>
-ComplexMatrix<T> ComplexMatrix<T>::operator*(const T & num) const
+ComplexMatrix<T> ComplexMatrix<T>::operator*(T num) const
 {
 	ComplexMatrix<T> result(*this);
 
@@ -164,29 +207,24 @@ ComplexMatrix<T> ComplexMatrix<T>::operator+(const ComplexMatrix<T> & matrix) co
 }
 
 template<class T>
-ComplexMatrix<T> ComplexMatrix<T>::operator|(const ComplexMatrix<T> & matrix)
+ComplexMatrix<T> ComplexMatrix<T>::operator|(const ComplexMatrix<T> & matrix) const
 {
 	if (_rows != matrix._rows)
 		throw std::logic_error("Error in concatenation of matrixes.");
-	ComplexMatrix<T> result;
-	result._rows = _rows;
-	result._columns = _columns + matrix._columns;
-	result._matrix = std::vector<std::vector<T> >(_rows);
-	for (int i=0; i<_rows; i++)
-		result._matrix[i]=std::vector<T>(result._columns);
+	ComplexMatrix<T> result(_rows, _columns + matrix._columns, _zero);
 	int j;
-	for (int i=0; i<_rows; i++)
+	for (int i = 0; i < _rows; i++)
 	{
 		for (j = 0; j < _columns; j++)
 			result._matrix[i][j] = _matrix[i][j];
 		for (int k = 0; k < matrix._columns; k++)
 			result._matrix[i][k + j] = matrix._matrix[i][k];
-	}	
+	}
 	return result;
 }
 
 template<class T>
-ComplexMatrix<T> ComplexMatrix<T>::operator~()
+ComplexMatrix<T> ComplexMatrix<T>::operator~() const
 {
 	if (_columns != _rows)
 		throw std::logic_error("Error in transportation of matrix.");
@@ -204,7 +242,7 @@ ComplexMatrix<T> ComplexMatrix<T>::operator~()
 }
 
 template<class T>
-T ComplexMatrix<T>::operator()(unsigned int npos, unsigned int mpos) const
+T ComplexMatrix<T>::operator()(size_t npos, size_t mpos) const
 {
 	if (npos >= _rows || mpos >= _columns)
 		throw std::out_of_range("Error: bad index.");
@@ -216,10 +254,8 @@ template<class T>
 ComplexMatrix<T>::~ComplexMatrix()
 {
 	for (int i = 0; i < _rows; i++)
-		_matrix[i].clear();
-
-	_matrix.clear();
+		delete [] _matrix[i];
+	delete [] _matrix;
 }
 
 #endif
-
