@@ -2,7 +2,6 @@
 #include <vector>
 #include <list>
 #include <functional>
-#include <memory>
 #include "ComplexMatrix.h"
 
 using namespace std;
