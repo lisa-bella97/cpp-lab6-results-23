@@ -25,10 +25,8 @@ public:
 		MatrixIterator(const MatrixIterator& it) : _data(it._data), _n(it._n), _m(it._m), _index(it._index) { }
 		MatrixIterator& operator++() { ++_index; return *this; }
 		MatrixIterator& operator++(int) { _index++; return *this; }
-		MatrixIterator operator+(size_t ind)
+		MatrixIterator& operator+(size_t ind)
 		{
-			if (_index + ind >= n*m)
-				throw std::out_of_range("Out of range");
 			_index += ind;
 			return *this;
 		}
@@ -170,6 +168,7 @@ ComplexMatrix<T> ComplexMatrix<T>::operator*(const ComplexMatrix<T> & matrix) co
 		for (int j = 0; j < matrix._columns; j++)
 			for (int k = 0; k < _columns; k++)
 				result._matrix[i][j] = result._matrix[i][j] + _matrix[i][k] * matrix._matrix[k][j];
+
 	return result;
 }
 
