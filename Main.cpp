@@ -2,7 +2,9 @@
 #include <vector>
 #include <list>
 #include <functional>
+#include <memory>
 #include "ComplexMatrix.h"
+#include "Ptr.h"
 
 using namespace std;
 using namespace placeholders;
@@ -35,6 +37,13 @@ template<class T, class U>
 ComplexMatrix<U> convert(ComplexMatrix<T> matrix)
 {
 	return ComplexMatrix<U>(matrix);
+}
+
+void foo(Shared_ptr<int> p)
+{
+	Shared_ptr<int> p1(p);
+	Shared_ptr<int> p2(p);
+	cout << "p2: " << p2.use_count() << '\n';
 }
 
 int main()
@@ -79,6 +88,8 @@ int main()
 
 	try
 	{
+		complMatrix1.setZero(0);
+		complMatrix2.setZero(0);
 		ComplexMatrix<int> result1 = complMatrix1 | complMatrix2;
 		ComplexMatrix<int> result2 = complMatrix1*complMatrix2;
 		ofstream fout("Complex.txt");
@@ -119,6 +130,17 @@ int main()
 
 	ComplexMatrix<char> result = convert<int, char>(complMatrix1);
 	cout << result;
+
+	Shared_ptr<int> p1;
+	Shared_ptr<int> p2 (new int);
+	Shared_ptr<int> p3 (p2);
+
+	cout << "use_count:\n";
+	cout << "p1: " << p1.use_count() << '\n';
+	cout << "p2: " << p2.use_count() << '\n';
+	cout << "p3: " << p3.use_count() << '\n';
+	foo(p2);
+	cout << "p2: " << p2.use_count() << '\n';
 
 	system("pause");
 	return 0;
