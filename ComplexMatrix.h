@@ -148,11 +148,15 @@ ComplexMatrix<T>& ComplexMatrix<T>::operator=(const ComplexMatrix<T> & matrix)
 	if (this == &matrix)
 		return *this;
 
-	_matrix = new T*[matrix->_rows];
-	for (int i = 0; i < matrix->_rows; i++)
-		_matrix[i] = new T[matrix->_columns];
+	_matrix = new T*[matrix._rows];
+	for (int i = 0; i < matrix._rows; i++)
+		_matrix[i] = new T[matrix._columns];
 	_rows = matrix._rows;
 	_columns = matrix._columns;
+	
+	for (int i = 0; i < _rows; i++)
+		for (int j = 0; j < _columns; j++)
+			_matrix[i][j] = matrix._matrix[i][j];
 	return *this;
 }
 
